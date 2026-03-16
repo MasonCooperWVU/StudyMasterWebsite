@@ -1,0 +1,1306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>StudyStack — AI-Powered Study App</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet" />
+<style>
+  /* ── Reset & Base ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0d0f14;
+    --surface:   #161921;
+    --surface2:  #1e222e;
+    --border:    #2a2f3f;
+    --accent:    #5dfdcb;
+    --accent2:   #f7c35f;
+    --accent3:   #ff6b8a;
+    --text:      #e8eaf0;
+    --text-dim:  #7a8099;
+    --text-mid:  #b0b6cc;
+    --correct:   #4ade80;
+    --wrong:     #f87171;
+    --radius:    12px;
+    --radius-lg: 20px;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Lora', Georgia, serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Noise overlay ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 999; opacity: 0.4;
+  }
+
+  /* ── Typography ── */
+  .font-display { font-family: 'Syne', sans-serif; }
+  .font-mono    { font-family: 'DM Mono', monospace; }
+
+  h1, h2, h3 { font-family: 'Syne', sans-serif; }
+
+  /* ── Layout ── */
+  .container { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+
+  /* ── Navigation ── */
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(13,15,20,0.85);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+  }
+  .nav-inner {
+    max-width: 960px; margin: 0 auto;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 60px;
+  }
+  .nav-logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800; font-size: 1.25rem;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+  }
+  .nav-logo span { color: var(--text-dim); font-weight: 400; }
+
+  .nav-actions { display: flex; align-items: center; gap: 12px; }
+
+  /* ── Buttons ── */
+  .btn {
+    font-family: 'Syne', sans-serif;
+    font-weight: 600; font-size: 0.8rem;
+    letter-spacing: 0.5px; text-transform: uppercase;
+    padding: 8px 18px; border-radius: 8px;
+    border: none; cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+  .btn-accent {
+    background: var(--accent);
+    color: var(--bg);
+  }
+  .btn-accent:hover { background: #4be8b6; transform: translateY(-1px); }
+
+  .btn-danger {
+    background: transparent;
+    color: var(--accent3);
+    border: 1px solid var(--accent3);
+  }
+  .btn-danger:hover { background: var(--accent3); color: white; }
+
+  /* ── Source mode badge ── */
+  .mode-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem; padding: 4px 10px;
+    border-radius: 20px; border: 1px solid;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .mode-badge.local { color: var(--accent2); border-color: var(--accent2); background: rgba(247,195,95,0.08); }
+  .mode-badge.blob  { color: var(--accent);  border-color: var(--accent);  background: rgba(93,253,203,0.08); }
+  .mode-badge::before { content: '●'; font-size: 0.6rem; }
+
+  /* ── Hero ── */
+  .hero {
+    padding: 64px 24px 48px;
+    text-align: center;
+    position: relative;
+  }
+  .hero::after {
+    content: '';
+    position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 300px; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
+  }
+  .hero-eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem; color: var(--accent);
+    letter-spacing: 2px; text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .hero h1 {
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    font-weight: 800; line-height: 1.1;
+    color: var(--text);
+    margin-bottom: 16px;
+  }
+  .hero h1 em { font-style: italic; color: var(--accent); }
+  .hero-sub {
+    font-size: 1rem; color: var(--text-mid); font-style: italic;
+    max-width: 480px; margin: 0 auto;
+  }
+
+  /* ── Section headers ── */
+  .section-header {
+    display: flex; align-items: center; gap: 16px;
+    margin-bottom: 24px;
+  }
+  .section-header h2 {
+    font-size: 1rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--text-mid);
+  }
+  .section-header::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+
+  /* ── Class grid ── */
+  #main-content { padding: 48px 0; }
+
+  .class-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+    margin-bottom: 48px;
+  }
+
+  .class-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .class-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    transform: scaleX(0); transform-origin: left;
+    transition: transform 0.3s ease;
+  }
+  .class-card:hover { border-color: var(--accent); transform: translateY(-3px); box-shadow: 0 12px 40px rgba(93,253,203,0.08); }
+  .class-card:hover::before { transform: scaleX(1); }
+  .class-card.active { border-color: var(--accent); background: var(--surface2); }
+  .class-card.active::before { transform: scaleX(1); }
+
+  .class-name {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700; font-size: 1.1rem;
+    margin-bottom: 6px;
+  }
+  .class-meta {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem; color: var(--text-dim);
+  }
+  .class-counts {
+    margin-top: 14px;
+    display: flex; gap: 12px;
+  }
+  .count-chip {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem; padding: 3px 10px;
+    border-radius: 20px;
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text-dim);
+  }
+
+  /* ── Notes list ── */
+  #notes-section { display: none; }
+  #notes-section.visible { display: block; }
+
+  .notes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 14px;
+  }
+
+  .notes-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .notes-card:hover { border-color: var(--accent2); background: var(--surface2); }
+
+  .notes-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 600; font-size: 0.95rem;
+    margin-bottom: 6px;
+  }
+  .notes-date {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem; color: var(--text-dim);
+    margin-bottom: 14px;
+  }
+
+  .study-mode-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+  .study-btn {
+    font-family: 'Syne', sans-serif;
+    font-weight: 600; font-size: 0.72rem;
+    letter-spacing: 0.4px; text-transform: uppercase;
+    padding: 6px 14px; border-radius: 6px;
+    border: 1px solid; cursor: pointer;
+    transition: all 0.2s;
+  }
+  .study-btn.flashcard { color: var(--accent); border-color: var(--accent); background: transparent; }
+  .study-btn.flashcard:hover { background: var(--accent); color: var(--bg); }
+  .study-btn.quiz { color: var(--accent2); border-color: var(--accent2); background: transparent; }
+  .study-btn.quiz:hover { background: var(--accent2); color: var(--bg); }
+  .study-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  /* ── Study modal overlay ── */
+  #study-overlay {
+    display: none;
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(10,12,17,0.96);
+    backdrop-filter: blur(8px);
+    overflow-y: auto;
+    padding: 24px;
+  }
+  #study-overlay.active { display: flex; flex-direction: column; align-items: center; }
+
+  .study-header {
+    width: 100%; max-width: 720px;
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 32px;
+  }
+  .study-title-group {}
+  .study-context {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem; color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  .study-heading {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800; font-size: 1.4rem;
+  }
+
+  .progress-bar-wrap {
+    width: 100%; max-width: 720px;
+    height: 3px; background: var(--surface2);
+    border-radius: 2px; margin-bottom: 36px;
+  }
+  .progress-bar {
+    height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 2px; transition: width 0.4s ease;
+  }
+  .progress-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem; color: var(--text-dim);
+    text-align: right; margin-top: 6px;
+    max-width: 720px; width: 100%;
+  }
+
+  /* ── Flashcard ── */
+  .flashcard-area { width: 100%; max-width: 620px; }
+
+  .flashcard {
+    perspective: 1200px;
+    cursor: pointer;
+    height: 340px;
+    margin-bottom: 28px;
+  }
+  .flashcard-inner {
+    position: relative; width: 100%; height: 100%;
+    transform-style: preserve-3d;
+    transition: transform 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .flashcard.flipped .flashcard-inner { transform: rotateY(180deg); }
+
+  .flashcard-face {
+    position: absolute; inset: 0;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    border-radius: var(--radius-lg);
+    padding: 40px;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    text-align: center;
+  }
+  .flashcard-front {
+    background: var(--surface);
+    border: 1px solid var(--border);
+  }
+  .flashcard-back {
+    background: var(--surface2);
+    border: 1px solid var(--accent);
+    transform: rotateY(180deg);
+  }
+
+  .fc-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem; color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 2px;
+    margin-bottom: 20px;
+    padding: 4px 12px; border-radius: 20px;
+    border: 1px solid var(--border);
+  }
+  .fc-label.back { color: var(--accent); border-color: var(--accent); }
+
+  .fc-text {
+    font-family: 'Lora', serif;
+    font-size: clamp(1rem, 2.5vw, 1.3rem);
+    line-height: 1.6;
+    color: var(--text);
+  }
+
+  .fc-hint {
+    margin-top: 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem; color: var(--text-dim);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
+
+  .fc-tags {
+    margin-top: 16px;
+    display: flex; gap: 6px; flex-wrap: wrap; justify-content: center;
+  }
+  .fc-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.62rem; color: var(--accent2);
+    padding: 2px 8px; border-radius: 20px;
+    border: 1px solid rgba(247,195,95,0.3);
+  }
+
+  .fc-nav {
+    display: flex; gap: 12px; justify-content: center;
+    align-items: center;
+  }
+  .fc-counter {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.85rem; color: var(--text-dim);
+    min-width: 60px; text-align: center;
+  }
+
+  /* ── Results summary ── */
+  .results-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 48px; text-align: center;
+    max-width: 500px; width: 100%;
+  }
+  .results-score {
+    font-family: 'Syne', sans-serif;
+    font-size: 5rem; font-weight: 800;
+    line-height: 1;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+  }
+  .results-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.8rem; color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 1px;
+    margin-bottom: 32px;
+  }
+  .results-breakdown {
+    display: flex; gap: 24px; justify-content: center; margin-bottom: 36px;
+  }
+  .breakdown-item { text-align: center; }
+  .breakdown-num {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.8rem; font-weight: 700;
+  }
+  .breakdown-num.correct { color: var(--correct); }
+  .breakdown-num.wrong   { color: var(--wrong); }
+  .breakdown-text {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem; color: var(--text-dim); text-transform: uppercase;
+  }
+
+  /* ── Quiz ── */
+  .quiz-area { width: 100%; max-width: 680px; }
+
+  .quiz-question-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 36px;
+    margin-bottom: 20px;
+  }
+  .quiz-q-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem; color: var(--accent); text-transform: uppercase;
+    letter-spacing: 1.5px; margin-bottom: 16px;
+  }
+  .quiz-q-text {
+    font-family: 'Lora', serif;
+    font-size: 1.1rem; line-height: 1.65;
+    color: var(--text); margin-bottom: 28px;
+  }
+
+  .options-list { display: flex; flex-direction: column; gap: 10px; }
+
+  .option-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    cursor: pointer;
+    display: flex; align-items: flex-start; gap: 14px;
+    text-align: left;
+    transition: all 0.2s;
+    width: 100%;
+  }
+  .option-btn:hover:not(:disabled) { border-color: var(--text-mid); background: #21253a; }
+
+  .option-letter {
+    font-family: 'DM Mono', monospace;
+    font-weight: 500; font-size: 0.8rem;
+    color: var(--text-dim);
+    min-width: 20px; padding-top: 1px;
+  }
+  .option-text {
+    font-family: 'Lora', serif;
+    font-size: 0.95rem; line-height: 1.5; color: var(--text);
+  }
+
+  .option-btn.selected { border-color: var(--accent2); background: rgba(247,195,95,0.06); }
+  .option-btn.selected .option-letter { color: var(--accent2); }
+
+  .option-btn.correct { border-color: var(--correct); background: rgba(74,222,128,0.08); }
+  .option-btn.correct .option-letter { color: var(--correct); }
+
+  .option-btn.wrong { border-color: var(--wrong); background: rgba(248,113,113,0.08); }
+  .option-btn.wrong .option-letter { color: var(--wrong); }
+
+  .option-btn:disabled { cursor: default; }
+
+  .quiz-explanation {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    padding: 16px 20px;
+    margin-top: 16px;
+    display: none;
+  }
+  .quiz-explanation.visible { display: block; }
+  .explanation-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem; color: var(--accent); text-transform: uppercase;
+    letter-spacing: 1px; margin-bottom: 8px;
+  }
+  .explanation-text {
+    font-family: 'Lora', serif;
+    font-size: 0.9rem; line-height: 1.6; color: var(--text-mid);
+    font-style: italic;
+  }
+
+  .quiz-actions {
+    display: flex; gap: 12px; justify-content: flex-end; margin-top: 8px;
+  }
+
+  /* ── Loading & Error states ── */
+  .loading-screen {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    min-height: 300px; gap: 16px;
+  }
+  .spinner {
+    width: 36px; height: 36px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-text {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem; color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+
+  .empty-state {
+    text-align: center; padding: 64px 24px; color: var(--text-dim);
+  }
+  .empty-state h3 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700; font-size: 1.1rem;
+    color: var(--text-mid); margin-bottom: 10px;
+  }
+  .empty-state p {
+    font-family: 'Lora', serif;
+    font-size: 0.9rem; font-style: italic; line-height: 1.6;
+  }
+
+  .error-banner {
+    background: rgba(255,107,138,0.08);
+    border: 1px solid var(--accent3);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    margin-bottom: 24px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem; color: var(--accent3);
+    display: none;
+  }
+  .error-banner.visible { display: block; }
+
+  /* ── Settings modal ── */
+  #settings-overlay {
+    display: none;
+    position: fixed; inset: 0; z-index: 300;
+    background: rgba(10,12,17,0.92);
+    backdrop-filter: blur(8px);
+    align-items: center; justify-content: center;
+    padding: 24px;
+  }
+  #settings-overlay.active { display: flex; }
+
+  .settings-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 36px;
+    max-width: 520px; width: 100%;
+  }
+  .settings-card h2 {
+    font-size: 1.2rem; font-weight: 700; margin-bottom: 6px;
+  }
+  .settings-sub {
+    font-family: 'Lora', serif; font-style: italic;
+    color: var(--text-dim); font-size: 0.85rem;
+    margin-bottom: 28px;
+  }
+
+  .form-group { margin-bottom: 20px; }
+  .form-group label {
+    display: block;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem; color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+  .form-row { display: flex; gap: 10px; align-items: center; }
+
+  .form-group input[type="text"],
+  .form-group input[type="password"],
+  .form-group input[type="url"],
+  .form-group select {
+    width: 100%;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 14px;
+    color: var(--text); font-family: 'DM Mono', monospace; font-size: 0.82rem;
+    outline: none; transition: border-color 0.2s;
+  }
+  .form-group input:focus,
+  .form-group select:focus { border-color: var(--accent); }
+
+  .mode-toggle {
+    display: flex; gap: 0;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; overflow: hidden;
+    margin-bottom: 24px;
+  }
+  .mode-toggle-btn {
+    flex: 1; padding: 10px 16px;
+    font-family: 'Syne', sans-serif; font-weight: 600;
+    font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px;
+    background: transparent; border: none; cursor: pointer;
+    color: var(--text-dim); transition: all 0.2s;
+  }
+  .mode-toggle-btn.active { background: var(--surface); color: var(--accent); }
+
+  .blob-fields { display: none; }
+  .blob-fields.visible { display: block; }
+
+  .settings-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px; }
+
+  /* ── Responsive ── */
+  @media (max-width: 600px) {
+    .hero h1 { font-size: 1.8rem; }
+    .flashcard { height: 280px; }
+    .flashcard-face { padding: 24px; }
+    .fc-text { font-size: 1rem; }
+    .quiz-question-card { padding: 24px; }
+  }
+
+  /* ── Animations ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .fade-up { animation: fadeUp 0.5s ease forwards; }
+  .fade-up-1 { animation-delay: 0.05s; opacity: 0; }
+  .fade-up-2 { animation-delay: 0.12s; opacity: 0; }
+  .fade-up-3 { animation-delay: 0.20s; opacity: 0; }
+</style>
+</head>
+<body>
+
+<!-- ── Nav ── -->
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo">Study<span>Stack</span></div>
+    <div class="nav-actions">
+      <span id="mode-badge" class="mode-badge local">Local</span>
+      <button class="btn btn-ghost" onclick="openSettings()">⚙ Settings</button>
+    </div>
+  </div>
+</nav>
+
+<!-- ── Hero ── -->
+<div class="hero fade-up">
+  <div class="hero-eyebrow">AI-Powered Study Tool</div>
+  <h1>Learn smarter,<br /><em>not harder.</em></h1>
+  <p class="hero-sub">Pick a class, choose your notes, and study with AI-generated flashcards or quizzes.</p>
+</div>
+
+<!-- ── Main Content ── -->
+<div class="container" id="main-content">
+
+  <div id="error-banner" class="error-banner"></div>
+
+  <!-- Classes -->
+  <div id="classes-section">
+    <div class="section-header fade-up-1">
+      <h2>Your Classes</h2>
+    </div>
+    <div id="classes-loading" class="loading-screen">
+      <div class="spinner"></div>
+      <div class="loading-text">Loading classes…</div>
+    </div>
+    <div id="class-grid" class="class-grid" style="display:none;"></div>
+    <div id="classes-empty" class="empty-state" style="display:none;">
+      <h3>No classes found</h3>
+      <p>Add JSON files to the <code>data/</code> folder,<br/>or configure Azure Blob in Settings.</p>
+    </div>
+  </div>
+
+  <!-- Notes -->
+  <div id="notes-section">
+    <div class="section-header">
+      <h2 id="notes-heading">Notes Sets</h2>
+    </div>
+    <div id="notes-grid" class="notes-grid"></div>
+  </div>
+
+</div>
+
+<!-- ── Study Overlay ── -->
+<div id="study-overlay">
+  <div class="study-header">
+    <div class="study-title-group">
+      <div class="study-context" id="study-context"></div>
+      <div class="study-heading" id="study-heading"></div>
+    </div>
+    <button class="btn btn-ghost" onclick="closeStudy()">✕ Close</button>
+  </div>
+  <div class="progress-bar-wrap">
+    <div class="progress-bar" id="progress-bar"></div>
+  </div>
+  <div class="progress-label" id="progress-label"></div>
+  <div id="study-content"></div>
+</div>
+
+<!-- ── Settings Overlay ── -->
+<div id="settings-overlay">
+  <div class="settings-card fade-up">
+    <h2>Data Source Settings</h2>
+    <p class="settings-sub">Choose between local JSON files or Azure Blob Storage.</p>
+
+    <div class="mode-toggle">
+      <button class="mode-toggle-btn active" id="toggle-local" onclick="setMode('local')">📁 Local Files</button>
+      <button class="mode-toggle-btn" id="toggle-blob" onclick="setMode('blob')">☁ Azure Blob</button>
+    </div>
+
+    <!-- Local settings -->
+    <div id="local-fields">
+      <div class="form-group">
+        <label>Data Folder Path</label>
+        <input type="text" id="local-path" value="data" placeholder="data" />
+      </div>
+      <p style="font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--text-dim);margin-bottom:20px;">
+        Place your JSON files in <code style="color:var(--accent);">{localPath}/</code> using the naming format:<br/>
+        <code style="color:var(--accent2);">{class-id}_{notes-id}_flashcards.json</code>
+      </p>
+    </div>
+
+    <!-- Blob settings -->
+    <div class="blob-fields" id="blob-fields">
+      <div class="form-group">
+        <label>Storage Account Name</label>
+        <input type="text" id="blob-account" placeholder="mystorageaccount" />
+      </div>
+      <div class="form-group">
+        <label>Container Name</label>
+        <input type="text" id="blob-container" placeholder="studyfiles" />
+      </div>
+      <div class="form-group">
+        <label>SAS Token <span style="color:var(--text-dim);font-style:italic;">(read-only, starts with ?sv=)</span></label>
+        <input type="password" id="blob-sas" placeholder="?sv=2023-01-03&ss=b&..." />
+      </div>
+      <div class="form-group">
+        <label>Index / Manifest File <span style="color:var(--text-dim);font-style:italic;">(optional)</span></label>
+        <input type="text" id="blob-manifest" value="index.json" placeholder="index.json" />
+      </div>
+      <p style="font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--text-dim);margin-bottom:20px;">
+        Set env vars <code style="color:var(--accent);">VITE_BLOB_ACCOUNT</code>, <code style="color:var(--accent);">VITE_BLOB_CONTAINER</code>,
+        <code style="color:var(--accent);">VITE_BLOB_SAS</code> for Azure Static Web Apps deployment.
+      </p>
+    </div>
+
+    <div class="settings-actions">
+      <button class="btn btn-ghost" onclick="closeSettings()">Cancel</button>
+      <button class="btn btn-accent" onclick="saveSettings()">Save & Reload</button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+// CONFIG — pulled from env vars at build time OR localStorage override
+// ═══════════════════════════════════════════════════════════════════
+const ENV = {
+  // These are replaced by your build tool (Vite/webpack) or Azure SWA env vars.
+  // For local dev without a build tool, set window.__ENV__ before this script.
+  BLOB_ACCOUNT:   (window.__ENV__ && window.__ENV__.VITE_BLOB_ACCOUNT)   || '',
+  BLOB_CONTAINER: (window.__ENV__ && window.__ENV__.VITE_BLOB_CONTAINER) || '',
+  BLOB_SAS:       (window.__ENV__ && window.__ENV__.VITE_BLOB_SAS)       || '',
+  BLOB_MANIFEST:  (window.__ENV__ && window.__ENV__.VITE_BLOB_MANIFEST)  || 'index.json',
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════════
+let settings = {
+  mode: 'local',          // 'local' | 'blob'
+  localPath: 'data',
+  blobAccount: ENV.BLOB_ACCOUNT,
+  blobContainer: ENV.BLOB_CONTAINER,
+  blobSas: ENV.BLOB_SAS,
+  blobManifest: ENV.BLOB_MANIFEST || 'index.json',
+};
+
+let catalog = {};       // { classId: { name, notesIds: [...], files: {notesId: {flashcards, quiz}} } }
+let studySession = null;
+
+// ═══════════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════════
+(function init() {
+  const saved = localStorage.getItem('studystack_settings');
+  if (saved) {
+    try { Object.assign(settings, JSON.parse(saved)); } catch(e) {}
+  }
+  updateModeBadge();
+  loadCatalog();
+})();
+
+// ═══════════════════════════════════════════════════════════════════
+// SETTINGS
+// ═══════════════════════════════════════════════════════════════════
+function openSettings() {
+  document.getElementById('settings-overlay').classList.add('active');
+  document.getElementById('local-path').value   = settings.localPath;
+  document.getElementById('blob-account').value   = settings.blobAccount;
+  document.getElementById('blob-container').value = settings.blobContainer;
+  document.getElementById('blob-sas').value       = settings.blobSas;
+  document.getElementById('blob-manifest').value  = settings.blobManifest;
+  setMode(settings.mode, false);
+}
+function closeSettings() {
+  document.getElementById('settings-overlay').classList.remove('active');
+}
+function setMode(mode, updateInput = true) {
+  settings.mode = mode;
+  document.getElementById('toggle-local').classList.toggle('active', mode === 'local');
+  document.getElementById('toggle-blob').classList.toggle('active',  mode === 'blob');
+  document.getElementById('blob-fields').classList.toggle('visible', mode === 'blob');
+}
+function saveSettings() {
+  settings.localPath     = document.getElementById('local-path').value.trim().replace(/\/+$/, '') || 'data';
+  settings.blobAccount   = document.getElementById('blob-account').value.trim();
+  settings.blobContainer = document.getElementById('blob-container').value.trim();
+  settings.blobSas       = document.getElementById('blob-sas').value.trim();
+  settings.blobManifest  = document.getElementById('blob-manifest').value.trim() || 'index.json';
+  localStorage.setItem('studystack_settings', JSON.stringify(settings));
+  closeSettings();
+  updateModeBadge();
+  loadCatalog();
+}
+function updateModeBadge() {
+  const b = document.getElementById('mode-badge');
+  if (settings.mode === 'blob') {
+    b.textContent = 'Azure Blob';
+    b.className = 'mode-badge blob';
+  } else {
+    b.textContent = 'Local';
+    b.className = 'mode-badge local';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// DATA LOADING
+// ═══════════════════════════════════════════════════════════════════
+async function loadCatalog() {
+  showLoading(true);
+  showError('');
+  catalog = {};
+
+  try {
+    if (settings.mode === 'blob') {
+      await loadFromBlob();
+    } else {
+      await loadFromLocal();
+    }
+    renderClasses();
+  } catch(err) {
+    showError(`Failed to load data: ${err.message}`);
+    showLoading(false);
+  }
+}
+
+// LOCAL: fetch an index.json that lists available files,
+// OR fall back to hardcoded sample paths for local dev
+async function loadFromLocal() {
+  const base = settings.localPath;
+  let fileList = [];
+
+  // Try fetching an index.json first
+  try {
+    const res = await fetch(`${base}/index.json`);
+    if (res.ok) {
+      const idx = await res.json();
+      fileList = idx.files || [];
+    }
+  } catch(e) { /* no index, use discovery */ }
+
+  if (fileList.length === 0) {
+    // Fallback: try to fetch a known sample manifest
+    // In production, always provide index.json
+    fileList = await discoverLocalFiles(base);
+  }
+
+  for (const filename of fileList) {
+    try {
+      const res = await fetch(`${base}/${filename}`);
+      if (!res.ok) continue;
+      const data = await res.json();
+      ingestFile(data, filename);
+    } catch(e) { console.warn(`Could not load ${filename}:`, e); }
+  }
+}
+
+async function discoverLocalFiles(base) {
+  // Try common sample filenames when no index exists
+  const candidates = [
+    'biology-101_cell-structure_flashcards.json',
+    'biology-101_cell-structure_quiz.json',
+    'history-202_world-war-ii_flashcards.json',
+    'history-202_world-war-ii_quiz.json',
+  ];
+  const found = [];
+  for (const f of candidates) {
+    try {
+      const r = await fetch(`${base}/${f}`, { method: 'HEAD' });
+      if (r.ok) found.push(f);
+    } catch(e) {}
+  }
+  return found;
+}
+
+// BLOB: list blobs via Azure Blob REST API, filter JSON files
+async function loadFromBlob() {
+  const account   = settings.blobAccount;
+  const container = settings.blobContainer;
+  const sas       = settings.blobSas;
+
+  if (!account || !container || !sas) {
+    throw new Error('Azure Blob settings incomplete. Open Settings to configure.');
+  }
+
+  const baseUrl = `https://${account}.blob.core.windows.net/${container}`;
+
+  // Try manifest first (faster), else list blobs
+  let fileList = [];
+  try {
+    const manifestUrl = `${baseUrl}/${settings.blobManifest}${sas}`;
+    const mRes = await fetch(manifestUrl);
+    if (mRes.ok) {
+      const manifest = await mRes.json();
+      fileList = manifest.files || [];
+    }
+  } catch(e) {}
+
+  if (fileList.length === 0) {
+    // List blobs
+    const listUrl = `${baseUrl}?restype=container&comp=list${sas.startsWith('?') ? '&' + sas.slice(1) : sas}`;
+    const lRes = await fetch(listUrl);
+    if (!lRes.ok) throw new Error(`Blob list failed: ${lRes.status} ${lRes.statusText}`);
+    const xml = await lRes.text();
+    const matches = [...xml.matchAll(/<Name>([^<]+\.json)<\/Name>/g)];
+    fileList = matches.map(m => m[1]).filter(f => f !== settings.blobManifest);
+  }
+
+  for (const filename of fileList) {
+    try {
+      const url = `${baseUrl}/${filename}${sas}`;
+      const res = await fetch(url);
+      if (!res.ok) continue;
+      const data = await res.json();
+      ingestFile(data, filename);
+    } catch(e) { console.warn(`Could not load blob ${filename}:`, e); }
+  }
+}
+
+function ingestFile(data, filename) {
+  if (!data || !data.metadata || !data.type) return;
+
+  const { class_id, class: className, notes_id, notes_set, generated_at } = data.metadata;
+  if (!class_id || !notes_id) return;
+
+  if (!catalog[class_id]) {
+    catalog[class_id] = { name: className || class_id, notes: {} };
+  }
+  if (!catalog[class_id].notes[notes_id]) {
+    catalog[class_id].notes[notes_id] = {
+      name: notes_set || notes_id,
+      generated_at,
+      flashcards: null,
+      quiz: null
+    };
+  }
+  if (data.type === 'flashcards') catalog[class_id].notes[notes_id].flashcards = data;
+  if (data.type === 'quiz')       catalog[class_id].notes[notes_id].quiz = data;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// RENDER — Classes
+// ═══════════════════════════════════════════════════════════════════
+function renderClasses() {
+  showLoading(false);
+  const grid = document.getElementById('class-grid');
+  const empty = document.getElementById('classes-empty');
+  grid.innerHTML = '';
+
+  const classIds = Object.keys(catalog);
+  if (classIds.length === 0) {
+    empty.style.display = 'block';
+    grid.style.display = 'none';
+    return;
+  }
+  empty.style.display = 'none';
+  grid.style.display = 'grid';
+
+  classIds.forEach((classId, i) => {
+    const cls = catalog[classId];
+    const noteIds = Object.keys(cls.notes);
+    const fcCount = noteIds.filter(n => cls.notes[n].flashcards).length;
+    const qzCount = noteIds.filter(n => cls.notes[n].quiz).length;
+
+    const card = document.createElement('div');
+    card.className = `class-card fade-up`;
+    card.style.animationDelay = `${i * 0.07}s`;
+    card.innerHTML = `
+      <div class="class-name">${cls.name}</div>
+      <div class="class-meta">${noteIds.length} notes set${noteIds.length !== 1 ? 's' : ''}</div>
+      <div class="class-counts">
+        <span class="count-chip">📇 ${fcCount} flashcard set${fcCount !== 1 ? 's' : ''}</span>
+        <span class="count-chip">🎯 ${qzCount} quiz${qzCount !== 1 ? 'zes' : ''}</span>
+      </div>`;
+    card.onclick = () => selectClass(classId, card);
+    grid.appendChild(card);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// RENDER — Notes
+// ═══════════════════════════════════════════════════════════════════
+function selectClass(classId, cardEl) {
+  document.querySelectorAll('.class-card').forEach(c => c.classList.remove('active'));
+  cardEl.classList.add('active');
+
+  const cls = catalog[classId];
+  document.getElementById('notes-heading').textContent = `${cls.name} — Notes Sets`;
+
+  const notesSection = document.getElementById('notes-section');
+  const notesGrid = document.getElementById('notes-grid');
+  notesGrid.innerHTML = '';
+  notesSection.classList.add('visible');
+
+  // Scroll to notes
+  setTimeout(() => notesSection.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+
+  Object.entries(cls.notes).forEach(([notesId, notes], i) => {
+    const date = notes.generated_at
+      ? new Date(notes.generated_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+      : 'Unknown date';
+
+    const card = document.createElement('div');
+    card.className = 'notes-card fade-up';
+    card.style.animationDelay = `${i * 0.06}s`;
+    card.innerHTML = `
+      <div class="notes-title">${notes.name}</div>
+      <div class="notes-date">Generated ${date}</div>
+      <div class="study-mode-btns">
+        <button class="study-btn flashcard" ${notes.flashcards ? '' : 'disabled'} onclick="startStudy('${classId}','${notesId}','flashcards')">
+          📇 Flashcards ${notes.flashcards ? `(${notes.flashcards.metadata.card_count})` : '—'}
+        </button>
+        <button class="study-btn quiz" ${notes.quiz ? '' : 'disabled'} onclick="startStudy('${classId}','${notesId}','quiz')">
+          🎯 Quiz ${notes.quiz ? `(${notes.quiz.metadata.question_count})` : '—'}
+        </button>
+      </div>`;
+    notesGrid.appendChild(card);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// STUDY — Flashcards
+// ═══════════════════════════════════════════════════════════════════
+function startStudy(classId, notesId, mode) {
+  const cls = catalog[classId];
+  const notes = cls.notes[notesId];
+  const data = mode === 'flashcards' ? notes.flashcards : notes.quiz;
+  if (!data) return;
+
+  studySession = { classId, notesId, mode, data, index: 0, score: 0, answers: [] };
+
+  document.getElementById('study-context').textContent = `${cls.name} · ${notes.name}`;
+  document.getElementById('study-heading').textContent = mode === 'flashcards' ? '📇 Flashcards' : '🎯 Quiz';
+  document.getElementById('study-overlay').classList.add('active');
+  document.body.style.overflow = 'hidden';
+
+  if (mode === 'flashcards') renderFlashcard();
+  else renderQuizQuestion();
+}
+
+function closeStudy() {
+  document.getElementById('study-overlay').classList.remove('active');
+  document.body.style.overflow = '';
+  studySession = null;
+}
+
+function updateProgress() {
+  const s = studySession;
+  const total = s.mode === 'flashcards'
+    ? s.data.flashcards.length
+    : s.data.quiz.length;
+  const pct = Math.round(((s.index) / total) * 100);
+  document.getElementById('progress-bar').style.width = `${pct}%`;
+  document.getElementById('progress-label').textContent = `${s.index} / ${total}`;
+}
+
+// ── Flashcard rendering ──
+function renderFlashcard() {
+  const s = studySession;
+  const cards = s.data.flashcards;
+
+  if (s.index >= cards.length) {
+    renderFlashcardComplete();
+    return;
+  }
+
+  updateProgress();
+  const card = cards[s.index];
+
+  document.getElementById('study-content').innerHTML = `
+    <div class="flashcard-area">
+      <div class="flashcard" id="fc" onclick="flipCard()">
+        <div class="flashcard-inner">
+          <div class="flashcard-face flashcard-front">
+            <span class="fc-label">Question</span>
+            <div class="fc-text">${escHtml(card.front)}</div>
+            <div class="fc-hint">↩ tap to reveal answer</div>
+          </div>
+          <div class="flashcard-face flashcard-back">
+            <span class="fc-label back">Answer</span>
+            <div class="fc-text">${escHtml(card.back)}</div>
+            ${card.tags?.length ? `<div class="fc-tags">${card.tags.map(t => `<span class="fc-tag">${t}</span>`).join('')}</div>` : ''}
+          </div>
+        </div>
+      </div>
+      <div class="fc-nav">
+        <button class="btn btn-ghost" onclick="fcNav(-1)" ${s.index === 0 ? 'disabled' : ''}>← Prev</button>
+        <span class="fc-counter">${s.index + 1} / ${cards.length}</span>
+        <button class="btn btn-accent" onclick="fcNav(1)">${s.index === cards.length - 1 ? 'Finish ✓' : 'Next →'}</button>
+      </div>
+    </div>`;
+}
+
+function flipCard() {
+  document.getElementById('fc')?.classList.toggle('flipped');
+}
+
+function fcNav(dir) {
+  const s = studySession;
+  const total = s.data.flashcards.length;
+  if (dir === 1 && s.index >= total - 1) {
+    s.index = total; // trigger complete
+  } else {
+    s.index = Math.max(0, Math.min(total - 1, s.index + dir));
+  }
+  renderFlashcard();
+}
+
+function renderFlashcardComplete() {
+  updateProgress();
+  document.getElementById('progress-bar').style.width = '100%';
+  document.getElementById('study-content').innerHTML = `
+    <div class="results-card fade-up">
+      <div class="results-score">✓</div>
+      <div class="results-label">All ${studySession.data.flashcards.length} cards reviewed!</div>
+      <div style="display:flex;gap:12px;justify-content:center;margin-top:8px;">
+        <button class="btn btn-ghost" onclick="studySession.index=0; renderFlashcard()">↺ Restart</button>
+        <button class="btn btn-accent" onclick="closeStudy()">Done</button>
+      </div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// STUDY — Quiz
+// ═══════════════════════════════════════════════════════════════════
+function renderQuizQuestion() {
+  const s = studySession;
+  const questions = s.data.quiz;
+
+  if (s.index >= questions.length) {
+    renderQuizResults();
+    return;
+  }
+
+  updateProgress();
+  const q = questions[s.index];
+
+  document.getElementById('study-content').innerHTML = `
+    <div class="quiz-area">
+      <div class="quiz-question-card">
+        <div class="quiz-q-num">Question ${s.index + 1} of ${questions.length}</div>
+        <div class="quiz-q-text">${escHtml(q.question)}</div>
+        <div class="options-list" id="options-list">
+          ${q.options.map(opt => `
+            <button class="option-btn" onclick="selectAnswer('${opt.letter}')">
+              <span class="option-letter">${opt.letter}</span>
+              <span class="option-text">${escHtml(opt.text)}</span>
+            </button>`).join('')}
+        </div>
+        <div class="quiz-explanation" id="quiz-explanation">
+          <div class="explanation-label">Explanation</div>
+          <div class="explanation-text">${escHtml(q.explanation || '')}</div>
+        </div>
+      </div>
+      <div class="quiz-actions">
+        <button class="btn btn-accent" id="next-btn" onclick="quizNext()" style="display:none;">
+          ${s.index === questions.length - 1 ? 'See Results →' : 'Next Question →'}
+        </button>
+      </div>
+    </div>`;
+}
+
+function selectAnswer(letter) {
+  const s = studySession;
+  const q = s.data.quiz[s.index];
+  const correct = q.correct_answer;
+
+  // Disable all buttons
+  document.querySelectorAll('.option-btn').forEach(btn => {
+    btn.disabled = true;
+    const ltr = btn.querySelector('.option-letter').textContent;
+    if (ltr === correct) btn.classList.add('correct');
+    else if (ltr === letter) btn.classList.add('wrong');
+  });
+
+  if (letter === correct) s.score++;
+  s.answers.push({ qId: q.id, selected: letter, correct, isCorrect: letter === correct });
+
+  document.getElementById('quiz-explanation').classList.add('visible');
+  document.getElementById('next-btn').style.display = 'flex';
+}
+
+function quizNext() {
+  studySession.index++;
+  renderQuizQuestion();
+}
+
+function renderQuizResults() {
+  const s = studySession;
+  const total = s.data.quiz.length;
+  const pct = Math.round((s.score / total) * 100);
+
+  document.getElementById('progress-bar').style.width = '100%';
+  document.getElementById('progress-label').textContent = `${total} / ${total}`;
+
+  document.getElementById('study-content').innerHTML = `
+    <div class="results-card fade-up">
+      <div class="results-score">${pct}%</div>
+      <div class="results-label">Quiz Complete</div>
+      <div class="results-breakdown">
+        <div class="breakdown-item">
+          <div class="breakdown-num correct">${s.score}</div>
+          <div class="breakdown-text">Correct</div>
+        </div>
+        <div class="breakdown-item">
+          <div class="breakdown-num wrong">${total - s.score}</div>
+          <div class="breakdown-text">Incorrect</div>
+        </div>
+        <div class="breakdown-item">
+          <div class="breakdown-num" style="color:var(--text-mid);">${total}</div>
+          <div class="breakdown-text">Total</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;justify-content:center;">
+        <button class="btn btn-ghost" onclick="restartQuiz()">↺ Retry</button>
+        <button class="btn btn-accent" onclick="closeStudy()">Done</button>
+      </div>
+    </div>`;
+}
+
+function restartQuiz() {
+  studySession.index = 0;
+  studySession.score = 0;
+  studySession.answers = [];
+  renderQuizQuestion();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// UI HELPERS
+// ═══════════════════════════════════════════════════════════════════
+function showLoading(on) {
+  document.getElementById('classes-loading').style.display = on ? 'flex' : 'none';
+  document.getElementById('class-grid').style.display = on ? 'none' : 'grid';
+}
+
+function showError(msg) {
+  const el = document.getElementById('error-banner');
+  if (msg) { el.textContent = msg; el.classList.add('visible'); }
+  else { el.classList.remove('visible'); }
+}
+
+function escHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+            .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// Keyboard navigation
+document.addEventListener('keydown', e => {
+  if (!studySession) return;
+  if (studySession.mode === 'flashcards') {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); fcNav(1); }
+    if (e.key === 'ArrowLeft') fcNav(-1);
+    if (e.key === 'Enter' || e.key === 'f') flipCard();
+  }
+  if (e.key === 'Escape') closeStudy();
+});
+</script>
+</body>
+</html>
