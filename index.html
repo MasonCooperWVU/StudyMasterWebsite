@@ -785,10 +785,10 @@ const ENV = {
 let settings = {
   mode: 'blob',          // 'local' | 'blob'
   localPath: 'data',
-  blobAccount: ENV.BLOB_ACCOUNT,
-  blobContainer: ENV.BLOB_CONTAINER,
-  blobSas: ENV.BLOB_SAS,
-  blobManifest: ENV.BLOB_MANIFEST || 'index.json',
+  blobAccount: 'REPLACE_WITH_YOUR_STORAGE_ACCOUNT',
+  blobContainer: 'REPLACE_WITH_YOUR_CONTAINER_NAME',
+  blobSas: 'REPLACE_WITH_YOUR_SAS_TOKEN',
+  blobManifest: 'index.json',
 };
 
 let catalog = {};       // { classId: { name, notesIds: [...], files: {notesId: {flashcards, quiz}} } }
@@ -802,22 +802,8 @@ let studySession = null;
   if (saved) {
     try { Object.assign(settings, JSON.parse(saved)); } catch(e) {}
   }
-  fetch('/api/config')
-    .then(r => r.json())
-    .then(cfg => {
-      if (cfg.VITE_BLOB_ACCOUNT && !saved) {
-        settings.blobAccount   = cfg.VITE_BLOB_ACCOUNT;
-        settings.blobContainer = cfg.VITE_BLOB_CONTAINER;
-        settings.blobSas       = cfg.VITE_BLOB_SAS;
-        settings.mode          = 'blob';
-      }
-      updateModeBadge();
-      loadCatalog();
-    })
-    .catch(() => {
-      updateModeBadge();
-      loadCatalog();
-    });
+  updateModeBadge();
+  loadCatalog();
 })();
 
 // ═══════════════════════════════════════════════════════════════════
