@@ -802,8 +802,22 @@ let studySession = null;
   if (saved) {
     try { Object.assign(settings, JSON.parse(saved)); } catch(e) {}
   }
-  updateModeBadge();
-  loadCatalog();
+  fetch('/api/config')
+    .then(r => r.json())
+    .then(cfg => {
+      if (cfg.VITE_BLOB_ACCOUNT && !saved) {
+        settings.blobAccount   = cfg.VITE_BLOB_ACCOUNT;
+        settings.blobContainer = cfg.VITE_BLOB_CONTAINER;
+        settings.blobSas       = cfg.VITE_BLOB_SAS;
+        settings.mode          = 'blob';
+      }
+      updateModeBadge();
+      loadCatalog();
+    })
+    .catch(() => {
+      updateModeBadge();
+      loadCatalog();
+    });
 })();
 
 // ═══════════════════════════════════════════════════════════════════
